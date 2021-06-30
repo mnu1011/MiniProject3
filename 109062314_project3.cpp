@@ -231,43 +231,43 @@ int disc_place(OthelloBoard game, int mode) {
     // center
     for(int i = 3; i <= 4; i++) {
         for(int j = 3; j <= 4; j++) {
-            if(game.board[i][j] == 1) bonus += 2;
+            if(game.board[i][j] == player) bonus += 2;
         }
     }
     for(int i = 2; i <= 5; i++) {
         for(int j = 2; j <= 5; j++) {
-            if(game.board[i][j] == 1) bonus ++;
+            if(game.board[i][j] == player) bonus ++;
         }
     }
 
     // corner
     for(int i: {0, 7}) {
         for(int j: {0, 7}) {
-            if(game.board[i][j] == 1) bonus += 5;
+            if(game.board[i][j] == player) bonus += 5;
         }
     }
 
     // side
     for(int i: {0, 7}) {
         for(int j = 0; j <= 7; j++) {
-            if(game.board[i][j] == 1) bonus += 2;
+            if(game.board[i][j] == player) bonus += 2;
         }
     }
     for(int j: {0, 7}) {
         for(int i = 0; i <= 7; i++) {
-            if(game.board[i][j] == 1) bonus += 2;
+            if(game.board[i][j] == player) bonus += 2;
         }
     }
 
     // danger zone
     if(mode == 1) {
         for(int i = 0; i <= 7; i++) {
-            if(game.board[i][1] == 1) bonus --;
-            if(game.board[i][6] == 1) bonus --;
+            if(game.board[i][1] == player) bonus --;
+            if(game.board[i][6] == player) bonus --;
         }
         for(int j = 0;  j <= 7; j++) {
-            if(game.board[1][j] == 1) bonus --;
-            if(game.board[6][j] == 1) bonus --;
+            if(game.board[1][j] == player) bonus --;
+            if(game.board[6][j] == player) bonus --;
         }
     }
 
@@ -277,7 +277,7 @@ int evaluate(OthelloBoard game) {
     int bonus = 0;
     bonus = disc_place(game, 1);
     //flip disc as fewer as possible  & have more place to put disc
-    if(game.cur_player == game.BLACK)
+    if(game.cur_player == player)
         bonus += game.next_valid_spots.size()*2 - game.flip_times*5;
     else
         bonus += game.flip_times*5 - game.next_valid_spots.size()*2;
@@ -288,27 +288,27 @@ int eval(OthelloBoard game) {
     int bonus = 0;
     bonus = disc_place(game, 2);
     //flip disc as fewer as possible  & have more place to put disc
-    if(game.cur_player == game.BLACK)
+    if(game.cur_player == player)
         bonus += game.flip_times*5;
     else
         bonus -= game.flip_times*5;
-    bonus += (game.disc_count[1] - game.disc_count[2]);
+    bonus += (game.disc_count[player] - game.disc_count[3-player]);
 
     return bonus;
 }
 
-int state_value(OthelloBoard game, int depth, int alpha, int beta, int player) {
+int Tree_search(OthelloBoard game, int depth, int alpha, int beta, int player1) {
     if(depth == 0)
         return evaluate(game);
     if(game.done)
         return eval(game);
 
-    if(player == OthelloBoard::BLACK) {
+    if(player1 == player) {
         int value = INT_MIN;
         for(Point p: game.next_valid_spots){
             OthelloBoard game2 = game;
             game2.put_disc(p);
-            value = std::max(value, state_value(game2, depth-1, alpha, beta, game2.cur_player));
+            value = std::max(value, Tree_search(game2, depth-1, alpha, beta, game2.cur_player));
             alpha = std::max(value, alpha);
             if(alpha >= beta)
                 break;
@@ -320,7 +320,7 @@ int state_value(OthelloBoard game, int depth, int alpha, int beta, int player) {
         for(Point p: game.next_valid_spots){
             OthelloBoard game2 = game;
             game2.put_disc(p);
-            value = std::min(value, state_value(game2, depth-1, alpha, beta, game2.cur_player));
+            value = std::min(value, Tree_search(game2, depth-1, alpha, beta, game2.cur_player));
             beta = std::min(value, beta);
             if(beta <= alpha)
                 break;
@@ -335,7 +335,7 @@ void write_valid_spot(std::ofstream& fout) {
         OthelloBoard game2(board);    //用讀進來的board初始化一個Othello物件
         game2.cur_player = player;
         game2.put_disc(p);
-        int val = state_value(game2, 6, INT_MIN, INT_MAX, game2.cur_player);
+        int val = Tree_search(game2, 6, INT_MIN, INT_MAX, game2.cur_player);
         if(val > value) {
             value = val;
             fout << p.x << " " << p.y << std::endl;
